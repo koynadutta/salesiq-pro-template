@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Sales Forecast{% endblock %}
+{% block page_title %}Sales Forecast{% endblock %}
+
+{% block content %}
+
+{% if not has_data %}
+<div style="max-width:520px; margin:4rem auto; text-align:center;">
+  <div style="display:inline-flex; align-items:center; justify-content:center; width:72px; height:72px; background:#e0e7ff; border-radius:1.5rem; margin-bottom:1.5rem;">
+    <svg style="width:36px;height:36px;color:#4f46e5;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+    </svg>
+  </div>
+  <h2 style="font-size:1.375rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">No sales data to forecast</h2>
+  <p style="color:#64748b; font-size:0.9375rem; line-height:1.6; margin-bottom:2rem;">
+    Upload a CSV or connect Shopify to generate 7, 14, and 30-day AI revenue forecasts.
+  </p>
+  <a href="/upload" class="btn-primary">Upload Data</a>
+</div>
+
+{% else %}
+
+<!-- Forecast summary cards -->
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; margin-bottom:1.75rem;">
+
+  <div class="card" style="padding:1.25rem; border-top:3px solid #6366f1;">
+    <div style="font-size:0.75rem; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">7-Day Forecast</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#0f172a; letter-spacing:-0.025em;">{{ total_7 | currency }}</div>
+    <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.375rem;">Next 7 days projected revenue</div>
+  </div>
+
+  <div class="card" style="padding:1.25rem; border-top:3px solid #8b5cf6;">
+    <div style="font-size:0.75rem; font-weight:700; color:#8b5cf6; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">14-Day Forecast</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#0f172a; letter-spacing:-0.025em;">{{ total_14 | currency }}</div>
+    <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.375rem;">Next 14 days projected revenue</div>
+  </div>
+
+  <div class="card" style="padding:1.25rem; border-top:3px solid #06b6d4;">
+    <div style="font-size:0.75rem; font-weight:700; color:#0891b2; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">30-Day Forecast</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#0f172a; letter-spacing:-0.025em;">{{ total_30 | currency }}</div>
+    <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.375rem;">Next 30 days projected revenue</div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="card" style="padding:1.5rem; margin-bottom:1.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
+    <div>
+      <h2 style="font-size:1rem; font-weight:700; color:#0f172a;">Revenue Forecast Chart</h2>
+      <p style="font-size:0.8rem; color:#94a3b8; margin-top:0.125rem;">Historical + AI predictions for 7, 14, and 30 days</p>
+    </div>
+    <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+      <span style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:#64748b;">
+        <span style="display:inline-block; width:24px; height:3px; background:#94a3b8; border-radius:2px;"></span> Historical
+      </span>
+      <span style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:#6366f1;">
+        <span style="display:inline-block; width:24px; height:3px; background:#6366f1; border-radius:2px;"></span> 7-Day
+      </span>
+      <span style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:#8b5cf6;">
+        <span style="display:inline-block; width:24px; height:3px; background:#8b5cf6; border-radius:2px; border-style:dashed;"></span> 14-Day
+      </span>
+      <span style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:#0891b2;">
+        <span style="display:inline-block; width:24px; height:3px; background:#06b6d4; border-radius:2px;"></span> 30-Day
+      </span>
+    </div>
+  </div>
+  <div style="height:280px;">
+    <canvas id="forecastChart"></canvas>
+  </div>
+</div>
+
+<!-- Tabs for forecast tables -->
+<div class="card" style="overflow:hidden;">
+  <div style="display:flex; border-bottom:1px solid #e2e8f0;">
+    <button onclick="showTab('t7')" id="btn-t7" style="flex:1; padding:0.875rem; font-size:0.875rem; font-weight:600; color:#4f46e5; border-bottom:2px solid #4f46e5; background:none; border-top:none; border-left:none; border-right:none; cursor:pointer;">7-Day Forecast</button>
+    <button onclick="showTab('t14')" id="btn-t14" style="flex:1; padding:0.875rem; font-size:0.875rem; font-weight:600; color:#64748b; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; cursor:pointer; transition:color .15s;">14-Day Forecast</button>
+    <button onclick="showTab('t30')" id="btn-t30" style="flex:1; padding:0.875rem; font-size:0.875rem; font-weight:600; color:#64748b; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; cursor:pointer; transition:color .15s;">30-Day Forecast</button>
+  </div>
+
+  <!-- 7-day table -->
+  <div id="tab-t7">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th style="text-align:right;">Predicted Revenue</th>
+          <th style="text-align:right;">Low Estimate</th>
+          <th style="text-align:right;">High Estimate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in forecast_7 %}
+        <tr>
+          <td style="font-weight:600; color:#0f172a;">{{ row.day }}</td>
+          <td style="text-align:right; font-weight:700; color:#4f46e5;">{{ row.revenue | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.low | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.high | currency }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background:#f8fafc; font-weight:700;">
+          <td style="font-weight:700; color:#0f172a;">Total (7 days)</td>
+          <td style="text-align:right; font-weight:800; color:#4f46e5; font-size:1rem;">{{ total_7 | currency }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 14-day table -->
+  <div id="tab-t14" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th style="text-align:right;">Predicted Revenue</th>
+          <th style="text-align:right;">Low Estimate</th>
+          <th style="text-align:right;">High Estimate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in forecast_14 %}
+        <tr>
+          <td style="font-weight:600; color:#0f172a;">{{ row.day }}</td>
+          <td style="text-align:right; font-weight:700; color:#7c3aed;">{{ row.revenue | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.low | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.high | currency }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background:#f8fafc; font-weight:700;">
+          <td style="font-weight:700; color:#0f172a;">Total (14 days)</td>
+          <td style="text-align:right; font-weight:800; color:#7c3aed; font-size:1rem;">{{ total_14 | currency }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 30-day table -->
+  <div id="tab-t30" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th style="text-align:right;">Predicted Revenue</th>
+          <th style="text-align:right;">Low Estimate</th>
+          <th style="text-align:right;">High Estimate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in forecast_30 %}
+        <tr>
+          <td style="font-weight:600; color:#0f172a;">{{ row.day }}</td>
+          <td style="text-align:right; font-weight:700; color:#0891b2;">{{ row.revenue | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.low | currency }}</td>
+          <td style="text-align:right; color:#64748b;">{{ row.high | currency }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background:#f8fafc;">
+          <td style="font-weight:700; color:#0f172a;">Total (30 days)</td>
+          <td style="text-align:right; font-weight:800; color:#0891b2; font-size:1rem;">{{ total_30 | currency }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_data %}
+<script>
+// Tab switcher
+function showTab(id) {
+  ['t7','t14','t30'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === id ? '' : 'none';
+    const btn = document.getElementById('btn-' + t);
+    btn.style.color        = t === id ? '#4f46e5' : '#64748b';
+    btn.style.borderBottom = t === id ? '2px solid #4f46e5' : '2px solid transparent';
+  });
+}
+
+// Chart
+const histDates  = {{ hist_dates | safe }};
+const histRev    = {{ hist_rev | safe }};
+const fcDates    = {{ fc_dates | safe }};
+const fc7        = {{ fc_7 | safe }};
+const fc14       = {{ fc_14 | safe }};
+const fc30       = {{ fc_30 | safe }};
+
+const allLabels  = [...histDates, ...fcDates];
+const nullHist   = histDates.map(() => null);
+
+new Chart(document.getElementById('forecastChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: allLabels,
+    datasets: [
+      {
+        label: 'Historical',
+        data: [...histRev, ...fcDates.map(() => null)],
+        borderColor: '#94a3b8',
+        backgroundColor: 'rgba(148,163,184,0.06)',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: '7-Day Forecast',
+        data: [...nullHist, ...fc7],
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.10)',
+        borderWidth: 2.5,
+        pointRadius: 3,
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: '14-Day Forecast',
+        data: [...nullHist, ...fc14],
+        borderColor: '#8b5cf6',
+        borderWidth: 2,
+        pointRadius: 2,
+        borderDash: [5,3],
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: '30-Day Forecast',
+        data: [...nullHist, ...fc30],
+        borderColor: '#06b6d4',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.3,
+        fill: false,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    spanGaps: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' $' + (ctx.parsed.y || 0).toLocaleString('en-US', {minimumFractionDigits:2})
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 12 }
+      },
+      y: {
+        grid: { color: '#f1f5f9' },
+        ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => '$' + v.toLocaleString() }
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

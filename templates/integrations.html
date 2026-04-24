@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Integrations{% endblock %}
+{% block page_title %}Integrations{% endblock %}
+
+{% block content %}
+
+<div style="max-width:720px;">
+
+  <!-- Shopify card -->
+  <div class="card" style="overflow:hidden; margin-bottom:1.5rem;">
+
+    <!-- Card header -->
+    <div style="padding:1.5rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:1rem;">
+      <div style="width:48px; height:48px; background:#96bf48; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg style="width:28px;height:28px;color:#fff;" viewBox="0 0 109 124" fill="currentColor">
+          <path d="M74.7 14.8s-1.4.4-3.7 1.1c-.4-1.3-1-2.9-1.9-4.4-2.8-5.4-6.9-8.2-11.8-8.2-.3 0-.7 0-1 .1-.1-.2-.3-.3-.4-.5-2.1-2.3-4.8-3.4-8.1-3.2-6.3.2-12.6 4.7-17.6 12.7-3.6 5.7-6.3 12.8-7.1 18.3-7.2 2.2-12.3 3.8-12.4 3.8-3.7 1.2-3.8 1.2-4.2 4.7-.3 2.6-9.9 76.5-9.9 76.5l75.1 13V14.4c-.4.1-.8.2-1 .4zm-15.4 4.7c-4.2 1.3-8.8 2.7-13.3 4.1 1.3-5 3.8-9.9 6.8-13.2 1.1-1.2 2.7-2.5 4.5-3.3 1.8 3.6 2.1 8.6 2 12.4zm-8.3-16.9c1.5 0 2.7.3 3.8.9-1.7.9-3.3 2.2-4.8 3.9-3.9 4.2-6.9 10.7-8.1 17-3.7 1.1-7.3 2.2-10.7 3.3 2-9.8 9.8-24.7 19.8-25.1zm-11 55.4c.4 6.4 17.3 7.8 18.3 22.9.7 11.8-6.3 19.9-16.4 20.5-12.2.7-18.9-6.4-18.9-6.4l2.6-11s6.7 5 12 4.7c3.5-.2 4.8-3.1 4.6-5.1-.5-8.4-14.3-7.9-15.2-21.7-.8-11.6 6.9-23.4 23.7-24.4 6.5-.4 9.8 1.2 9.8 1.2l-3.8 14.4s-4.3-2-9.4-1.7c-7.4.5-7.4 5.2-7.3 6.6zm29.7-38.4c0-3.7-.5-8.9-2.2-13.3 5.5 1.1 8.2 7.2 9.3 11-.3.1-4.1 1.2-7.1 2.3zM78.1 110.9l27.2-6.8S92.6 21.3 92.5 20.7c-.1-.6-.6-1-1.1-1-5 0-9.1.1-12.7.3-.1.7-.3 1.4-.4 2.1-.2 1.5-.3 2.9-.3 4.3v84.5z"/>
+        </svg>
+      </div>
+      <div>
+        <h2 style="font-size:1.0625rem; font-weight:700; color:#0f172a;">Shopify</h2>
+        <p style="font-size:0.8125rem; color:#64748b; margin-top:0.125rem;">Import orders automatically from your Shopify store</p>
+      </div>
+      <div style="margin-left:auto;">
+        {% if connected %}
+        <span style="display:inline-flex; align-items:center; gap:0.4rem; background:#dcfce7; color:#15803d; padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:700;">
+          <span style="width:8px; height:8px; border-radius:50%; background:#16a34a;"></span>
+          Connected
+        </span>
+        {% else %}
+        <span style="display:inline-flex; align-items:center; gap:0.4rem; background:#f1f5f9; color:#64748b; padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600;">
+          <span style="width:8px; height:8px; border-radius:50%; background:#94a3b8;"></span>
+          Not Connected
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="padding:1.5rem;">
+
+      {% if connected %}
+      <!-- Connected state -->
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1.125rem 1.25rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+          <div style="font-size:0.9375rem; font-weight:700; color:#15803d;">
+            Connected to {{ shop_name }}
+          </div>
+          {% if last_synced %}
+          <div style="font-size:0.8rem; color:#4ade80; margin-top:0.25rem;">
+            Last synced: {{ last_synced }}
+          </div>
+          {% else %}
+          <div style="font-size:0.8rem; color:#86efac; margin-top:0.25rem;">Sync pending…</div>
+          {% endif %}
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+          <form method="POST" action="/integrations/sync" style="display:inline;">
+            <button type="submit" class="btn-primary" style="background:#16a34a;">
+              <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Sync Now
+            </button>
+          </form>
+          <form method="POST" action="/integrations/disconnect" style="display:inline;" onsubmit="return confirm('Disconnect this Shopify store?');">
+            <button type="submit" class="btn-secondary" style="color:#64748b;">Disconnect</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Re-connect form (collapsed by default) -->
+      <details style="border:1px solid #e2e8f0; border-radius:0.75rem; overflow:hidden;">
+        <summary style="padding:0.875rem 1.125rem; font-size:0.875rem; font-weight:600; color:#374151; cursor:pointer; user-select:none;">
+          Update credentials
+        </summary>
+        <div style="padding:1.25rem; border-top:1px solid #f1f5f9;">
+          <form method="POST" action="/integrations/connect">
+            <div style="display:grid; gap:1rem; margin-bottom:1.25rem;">
+              <div>
+                <label class="label">Store URL</label>
+                <input class="input" type="text" name="store_url" value="{{ store_url }}" placeholder="https://yourstore.myshopify.com" required>
+              </div>
+              <div>
+                <label class="label">API Access Token</label>
+                <input class="input" type="password" name="api_token" placeholder="shpat_xxxxxxxxxxxxxxxx" required>
+                <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.375rem;">Admin API access token from your Shopify app settings.</p>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">Reconnect</button>
+          </form>
+        </div>
+      </details>
+
+      {% else %}
+      <!-- Connect form -->
+      <form method="POST" action="/integrations/connect">
+        <div style="display:grid; gap:1.25rem; margin-bottom:1.5rem;">
+          <div>
+            <label class="label">Store URL</label>
+            <input class="input" type="text" name="store_url" placeholder="https://yourstore.myshopify.com" required>
+            <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.375rem;">Enter your full Shopify store URL.</p>
+          </div>
+          <div>
+            <label class="label">API Access Token</label>
+            <input class="input" type="password" name="api_token" placeholder="shpat_xxxxxxxxxxxxxxxx" required>
+            <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.375rem;">
+              Find this in Shopify Admin → Settings → Apps → Develop apps → API credentials.
+            </p>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+          Connect Shopify Store
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Auto-sync note -->
+    <div style="padding:1rem 1.5rem; background:#f8fafc; border-top:1px solid #f1f5f9; font-size:0.8rem; color:#64748b; display:flex; align-items:center; gap:0.5rem;">
+      <svg style="width:14px;height:14px;color:#94a3b8;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Auto-sync schedule is configured in <a href="/settings" style="color:#4f46e5; font-weight:600;">Settings</a>.
+    </div>
+  </div>
+
+  <!-- More integrations (coming soon placeholder) -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+    {% for name, icon_color in [('WooCommerce','#7f54b3'),('Amazon Seller','#ff9900'),('Stripe','#6772e5'),('QuickBooks','#2ca01c')] %}
+    <div class="card" style="padding:1.25rem; opacity:.55; display:flex; align-items:center; gap:0.875rem;">
+      <div style="width:40px; height:40px; background:#f1f5f9; border-radius:0.625rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.2rem; color:#94a3b8;">&#x2B;</div>
+      <div>
+        <div style="font-size:0.9rem; font-weight:600; color:#374151;">{{ name }}</div>
+        <div style="font-size:0.75rem; color:#94a3b8;">Coming soon</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

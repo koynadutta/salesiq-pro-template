@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Upload Data{% endblock %}
+{% block page_title %}Upload Data{% endblock %}
+
+{% block content %}
+
+<div style="display:grid; grid-template-columns:1fr 360px; gap:1.5rem; align-items:start;">
+
+  <!-- Left: Upload form -->
+  <div>
+    <div class="card" style="padding:1.5rem; margin-bottom:1.25rem;">
+      <h2 style="font-size:1rem; font-weight:700; color:#0f172a; margin-bottom:0.25rem;">Import CSV File</h2>
+      <p style="font-size:0.8125rem; color:#64748b; margin-bottom:1.5rem;">
+        PRO — <strong>no row limits</strong>. Your entire file is processed regardless of size.
+      </p>
+
+      <form method="POST" action="/upload" enctype="multipart/form-data" id="uploadForm">
+
+        <!-- Drop zone -->
+        <div id="dropZone" onclick="document.getElementById('csvFile').click()"
+          style="border:2px dashed #c7d2fe; border-radius:0.875rem; padding:2.5rem 2rem; text-align:center; cursor:pointer; transition:border-color .2s, background .2s; background:#fafafe; margin-bottom:1.25rem;">
+          <svg style="width:44px;height:44px;color:#a5b4fc;margin:0 auto 1rem;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p id="dropLabel" style="font-size:0.9375rem; font-weight:600; color:#4f46e5;">Click to select CSV or drag &amp; drop</p>
+          <p style="font-size:0.8rem; color:#94a3b8; margin-top:0.375rem;">Any size — all rows imported</p>
+          <input type="file" name="file" id="csvFile" accept=".csv" style="display:none;" onchange="fileSelected(this)">
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-primary" style="width:100%; justify-content:center; padding:0.75rem;">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          Upload &amp; Import
+        </button>
+      </form>
+    </div>
+
+    <!-- Current data summary -->
+    <div class="card" style="padding:1.5rem; margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="font-size:1rem; font-weight:700; color:#0f172a;">Current Data</h2>
+        <span style="background:#ede9fe; color:#6d28d9; font-size:0.8rem; font-weight:700; padding:0.3rem 0.75rem; border-radius:2rem;">
+          {{ total_rows | intcomma }} total rows
+        </span>
+      </div>
+
+      {% if source_counts %}
+      <div style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.25rem;">
+        {% for sc in source_counts %}
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border-radius:0.5rem; padding:0.625rem 0.875rem;">
+          <div style="display:flex; align-items:center; gap:0.625rem;">
+            {% if sc.source == 'shopify' %}
+            <span style="background:#f0fdf4; color:#15803d; font-size:0.7rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:2rem;">Shopify</span>
+            {% else %}
+            <span style="background:#eff6ff; color:#1d4ed8; font-size:0.7rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:2rem;">Upload</span>
+            {% endif %}
+          </div>
+          <div style="font-size:0.875rem; font-weight:600; color:#0f172a;">{{ sc.v | intcomma }} rows</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Clear buttons -->
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <form method="POST" action="/upload/clear" onsubmit="return confirm('Clear all upload data? This cannot be undone.');">
+          <input type="hidden" name="source" value="upload">
+          <button type="submit" class="btn-secondary" style="font-size:0.8125rem; padding:0.45rem 1rem;">Clear Upload Data</button>
+        </form>
+        <form method="POST" action="/upload/clear" onsubmit="return confirm('Clear ALL data including Shopify? This cannot be undone.');">
+          <input type="hidden" name="source" value="all">
+          <button type="submit" class="btn-danger" style="font-size:0.8125rem; padding:0.45rem 1rem;">Clear All Data</button>
+        </form>
+      </div>
+      {% else %}
+      <p style="color:#94a3b8; font-size:0.875rem;">No data imported yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Column guide -->
+  <div>
+    <div class="card" style="padding:1.375rem; margin-bottom:1.25rem;">
+      <h3 style="font-size:0.9375rem; font-weight:700; color:#0f172a; margin-bottom:1rem;">Column Auto-Detection</h3>
+      <p style="font-size:0.8rem; color:#64748b; margin-bottom:1rem;">SalesIQ auto-detects your columns by name. Use these names for best results:</p>
+
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        {% set cols = [
+          ('date', 'required', 'Date of sale — also: order_date, created_at'),
+          ('amount', 'required', 'Order total — also: total, revenue, price'),
+          ('email', 'optional', 'Customer email for LTV analysis'),
+          ('name', 'optional', 'Customer name — also: customer_name'),
+          ('product', 'optional', 'Product name — also: item, sku'),
+          ('category', 'optional', 'Product category'),
+          ('order_id', 'optional', 'Order reference — also: id, invoice_id'),
+          ('quantity', 'optional', 'Units sold — also: qty'),
+          ('unit_price', 'optional', 'Price per unit'),
+        ] %}
+        {% for col, req, note in cols %}
+        <div style="display:flex; align-items:flex-start; gap:0.625rem; padding:0.5rem 0.75rem; background:#f8fafc; border-radius:0.5rem;">
+          <code style="font-size:0.75rem; font-weight:700; color:#4f46e5; background:#ede9fe; padding:0.2rem 0.45rem; border-radius:0.3rem; white-space:nowrap; margin-top:0.05rem;">{{ col }}</code>
+          <div>
+            <span style="font-size:0.7rem; font-weight:700;
+              {% if req == 'required' %}color:#b91c1c; background:#fef2f2;{% else %}color:#64748b; background:#f1f5f9;{% endif %}
+              padding:0.1rem 0.4rem; border-radius:2rem;">{{ req }}</span>
+            <div style="font-size:0.7rem; color:#94a3b8; margin-top:0.2rem;">{{ note }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card" style="padding:1.375rem;">
+      <h3 style="font-size:0.9375rem; font-weight:700; color:#0f172a; margin-bottom:0.75rem;">Sample CSV Format</h3>
+      <pre style="background:#0f172a; color:#a5f3fc; font-size:0.7rem; padding:1rem; border-radius:0.625rem; overflow-x:auto; line-height:1.6;">date,email,name,product,amount
+2024-01-15,jane@co.com,Jane Smith,Widget Pro,149.99
+2024-01-16,bob@co.com,Bob Jones,Starter Kit,49.00
+2024-01-17,alice@co.com,Alice Lee,Widget Pro,149.99</pre>
+      <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.75rem;">Column order doesn't matter. Headers are case-insensitive.</p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropZone = document.getElementById('dropZone');
+const dropLabel = document.getElementById('dropLabel');
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = '#6366f1';
+  dropZone.style.background  = '#eef2ff';
+});
+dropZone.addEventListener('dragleave', () => {
+  dropZone.style.borderColor = '#c7d2fe';
+  dropZone.style.background  = '#fafafe';
+});
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = '#c7d2fe';
+  dropZone.style.background  = '#fafafe';
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('csvFile').files = e.dataTransfer.files;
+    fileSelected({ files: [file] });
+  }
+});
+
+function fileSelected(input) {
+  const file = input.files[0];
+  if (file) {
+    dropLabel.textContent = file.name;
+    dropLabel.style.color = '#15803d';
+  }
+}
+
+document.getElementById('uploadForm').addEventListener('submit', () => {
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Importing…';
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+});
+</script>
+{% endblock %}

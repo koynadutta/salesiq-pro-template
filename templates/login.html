@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — {{ company_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .input {
+      width: 100%; padding: 0.625rem 0.875rem;
+      border: 1px solid #d1d5db; border-radius: 0.5rem;
+      font-size: 0.875rem; color: #111827; box-sizing: border-box;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+  </style>
+</head>
+<body style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%); min-height:100vh; display:flex; align-items:center; justify-content:center;">
+
+  <div style="width:100%; max-width:400px; padding:1rem;">
+
+    <!-- Logo / brand -->
+    <div style="text-align:center; margin-bottom:2rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:1rem; margin-bottom:1rem; box-shadow:0 8px 25px rgba(79,70,229,.4);">
+        <svg style="width:28px;height:28px;color:#fff;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+      </div>
+      <h1 style="color:#f8fafc; font-size:1.5rem; font-weight:800; letter-spacing:-0.025em;">{{ company_name }}</h1>
+      <p style="color:#94a3b8; font-size:0.875rem; margin-top:0.25rem;">{{ app_title }}</p>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#fff; border-radius:1rem; padding:2rem; box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <h2 style="font-size:1.125rem; font-weight:700; color:#0f172a; margin-bottom:0.25rem;">Welcome back</h2>
+      <p style="font-size:0.875rem; color:#64748b; margin-bottom:1.5rem;">Sign in to your account to continue.</p>
+
+      {% if error %}
+      <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:0.75rem 1rem; border-radius:0.5rem; font-size:0.875rem; margin-bottom:1.25rem; font-weight:500;">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <div style="margin-bottom:1.25rem;">
+          <label style="display:block; font-size:0.8125rem; font-weight:600; color:#374151; margin-bottom:0.375rem;">Username</label>
+          <input class="input" type="text" name="username" placeholder="Enter your username" autofocus autocomplete="username" required>
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block; font-size:0.8125rem; font-weight:600; color:#374151; margin-bottom:0.375rem;">Password</label>
+          <input class="input" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" style="width:100%; background:linear-gradient(135deg,#4f46e5,#6366f1); color:#fff; font-weight:700; padding:0.75rem; border-radius:0.5rem; border:none; font-size:0.9375rem; cursor:pointer; transition:opacity .15s; box-shadow:0 4px 12px rgba(99,102,241,.3);" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <p style="text-align:center; color:#475569; font-size:0.75rem; margin-top:1.5rem;">
+      Powered by {{ app_title }} &mdash; PRO Edition
+    </p>
+  </div>
+</body>
+</html>

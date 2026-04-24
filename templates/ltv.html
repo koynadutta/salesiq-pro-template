@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Customer LTV{% endblock %}
+{% block page_title %}Customer Lifetime Value{% endblock %}
+
+{% block content %}
+
+{% if not has_data %}
+<div style="max-width:520px; margin:4rem auto; text-align:center;">
+  <div style="display:inline-flex; align-items:center; justify-content:center; width:72px; height:72px; background:#dbeafe; border-radius:1.5rem; margin-bottom:1.5rem;">
+    <svg style="width:36px;height:36px;color:#2563eb;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+  </div>
+  <h2 style="font-size:1.375rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">No customer data yet</h2>
+  <p style="color:#64748b; font-size:0.9375rem; line-height:1.6; margin-bottom:2rem;">
+    Upload a CSV with customer emails to see LTV analysis, segmentation, and churn risk scores.
+  </p>
+  <a href="/upload" class="btn-primary">Upload Data</a>
+</div>
+
+{% else %}
+
+<!-- KPI row -->
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; margin-bottom:1.75rem;">
+  <div class="card" style="padding:1.25rem;">
+    <div style="font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">Total Customers</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#0f172a; letter-spacing:-0.025em;">{{ total_customers | intcomma }}</div>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <div style="font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">Avg LTV (24m)</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#0f172a; letter-spacing:-0.025em;">{{ avg_ltv | currency }}</div>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <div style="font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">High-Value Customers</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#4f46e5; letter-spacing:-0.025em;">{{ high_value_ct | intcomma }}</div>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <div style="font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:0.5rem;">At-Risk Customers</div>
+    <div style="font-size:1.75rem; font-weight:800; color:#ef4444; letter-spacing:-0.025em;">{{ at_risk_ct | intcomma }}</div>
+  </div>
+</div>
+
+<!-- Chart + totals -->
+<div style="display:grid; grid-template-columns:280px 1fr; gap:1.25rem; margin-bottom:1.75rem;">
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:0.9375rem; font-weight:700; color:#0f172a; margin-bottom:1rem;">Customer Segments</h2>
+    <div style="height:200px;">
+      <canvas id="segChart"></canvas>
+    </div>
+    <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
+      {% for name, color in [('High Value','#6366f1'),('Medium Value','#3b82f6'),('Low Value','#94a3b8'),('At Risk','#ef4444')] %}
+      <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#374151;">
+        <span style="width:10px; height:10px; border-radius:50%; background:{{ color }}; display:inline-block; flex-shrink:0;"></span>
+        {{ name }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card" style="padding:1.5rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <h2 style="font-size:0.9375rem; font-weight:700; color:#0f172a;">Total Projected LTV</h2>
+      <div style="font-size:1.375rem; font-weight:800; color:#4f46e5;">{{ total_projected | currency }}</div>
+    </div>
+    <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:1.25rem;">Combined 24-month LTV projection across all active customers</p>
+    <div style="background:#f8fafc; border-radius:0.75rem; padding:1rem;">
+      <div style="font-size:0.75rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.75rem;">LTV Methodology</div>
+      <ul style="font-size:0.8125rem; color:#64748b; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.4rem;">
+        <li>&#x2022; Monthly spend rate from full purchase history</li>
+        <li>&#x2022; 24-month projection window</li>
+        <li>&#x2022; Churn adjustment: Active 100% · At Risk 70% · Churning 40% · Churned 10%</li>
+        <li>&#x2022; Segments based on projected LTV value</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Filter controls -->
+<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+  <span style="font-size:0.875rem; font-weight:600; color:#374151;">Filter:</span>
+  <button onclick="filterSeg('all')" id="f-all" style="padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600; cursor:pointer; background:#4f46e5; color:#fff; border:none;">All</button>
+  <button onclick="filterSeg('High Value')" id="f-hv" style="padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600; cursor:pointer; background:#e0e7ff; color:#4338ca; border:none;">High Value</button>
+  <button onclick="filterSeg('Medium Value')" id="f-mv" style="padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600; cursor:pointer; background:#dbeafe; color:#1d4ed8; border:none;">Medium Value</button>
+  <button onclick="filterSeg('Low Value')" id="f-lv" style="padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600; cursor:pointer; background:#f1f5f9; color:#475569; border:none;">Low Value</button>
+  <button onclick="filterSeg('At Risk')" id="f-ar" style="padding:0.35rem 0.875rem; border-radius:2rem; font-size:0.8rem; font-weight:600; cursor:pointer; background:#fef2f2; color:#b91c1c; border:none;">At Risk</button>
+  <input type="text" oninput="searchTable(this.value)" placeholder="Search name or email..." style="margin-left:auto; padding:0.4rem 0.75rem; border:1px solid #e2e8f0; border-radius:0.5rem; font-size:0.8125rem; color:#374151; min-width:220px;">
+</div>
+
+<!-- LTV table -->
+<div class="card" style="overflow:hidden;">
+  <table id="ltvTable">
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th style="text-align:right;">Orders</th>
+        <th style="text-align:right;">Total Spent</th>
+        <th style="text-align:right;">Avg Order</th>
+        <th style="text-align:right;">Monthly Spend</th>
+        <th style="text-align:right;">LTV (24m)</th>
+        <th style="text-align:center;">Status</th>
+        <th style="text-align:center;">Segment</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr data-segment="{{ c.segment }}" data-search="{{ c.name | lower }} {{ c.email | lower }}">
+        <td>
+          <div style="font-weight:600; color:#0f172a; font-size:0.875rem;">{{ c.name }}</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">{{ c.email }}</div>
+          <div style="font-size:0.7rem; color:#cbd5e1; margin-top:0.125rem;">Last order: {{ c.last_order }}</div>
+        </td>
+        <td style="text-align:right; font-weight:600;">{{ c.orders }}</td>
+        <td style="text-align:right; font-weight:600; color:#0f172a;">{{ c.total_spent | currency }}</td>
+        <td style="text-align:right; color:#64748b;">{{ c.avg_order | currency }}</td>
+        <td style="text-align:right; color:#64748b;">{{ c.monthly_spend | currency }}</td>
+        <td style="text-align:right; font-weight:700; color:
+          {% if c.seg_c == 'indigo' %}#4338ca
+          {% elif c.seg_c == 'blue' %}#1d4ed8
+          {% elif c.seg_c == 'red' %}#b91c1c
+          {% else %}#475569{% endif %}; font-size:1rem;">
+          {{ c.ltv_24m | currency }}
+        </td>
+        <td style="text-align:center;">
+          <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700;
+            {% if c.sc == 'green' %}background:#dcfce7; color:#15803d;
+            {% elif c.sc == 'yellow' %}background:#fef9c3; color:#a16207;
+            {% elif c.sc == 'orange' %}background:#ffedd5; color:#c2410c;
+            {% else %}background:#fef2f2; color:#b91c1c;{% endif %}">
+            {{ c.status }}
+          </span>
+        </td>
+        <td style="text-align:center;">
+          <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700;
+            {% if c.seg_c == 'indigo' %}background:#e0e7ff; color:#4338ca;
+            {% elif c.seg_c == 'blue' %}background:#dbeafe; color:#1d4ed8;
+            {% elif c.seg_c == 'red' %}background:#fef2f2; color:#b91c1c;
+            {% else %}background:#f1f5f9; color:#475569;{% endif %}">
+            {{ c.segment }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_data %}
+<script>
+// Segment doughnut chart
+new Chart(document.getElementById('segChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ seg_labels | safe }},
+    datasets: [{
+      data: {{ seg_data | safe }},
+      backgroundColor: ['#6366f1','#3b82f6','#94a3b8','#ef4444'],
+      borderWidth: 0,
+      hoverOffset: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} customers`
+        }
+      }
+    }
+  }
+});
+
+// Filter by segment
+function filterSeg(seg) {
+  document.querySelectorAll('#ltvTable tbody tr').forEach(row => {
+    row.style.display = (seg === 'all' || row.dataset.segment === seg) ? '' : 'none';
+  });
+}
+
+// Search by name/email
+function searchTable(q) {
+  const term = q.toLowerCase();
+  document.querySelectorAll('#ltvTable tbody tr').forEach(row => {
+    row.style.display = row.dataset.search.includes(term) ? '' : 'none';
+  });
+}
+</script>
+{% endif %}
+{% endblock %}
